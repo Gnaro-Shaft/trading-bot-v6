@@ -6,7 +6,7 @@ from binance_api import (
     get_klines,
     estimate_volatility
 )
-from memory import get_last_trade
+from memory import get_last_trade, has_open_position
 from config import MA_PERIOD
 from logger import log, log_to_telegram
 
