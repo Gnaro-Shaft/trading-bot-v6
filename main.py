@@ -1,64 +1,40 @@
 # main.py
-
 import time
-from dotenv import load_dotenv
-from decision_engine import should_buy, should_sell
-from trader import buy, sell
-from binance_api import get_current_price
-from version_manager import get_version
-from notifier import send_telegram_message
-from config import QUANTITY, SYMBOL, CYCLE_SECONDS
-import sys
+from decision_engine import should_buy, get_profitable_trade_index
+from trader import buy, sell_trade_by_index
 from chart import show_price_chart
-from pnl_logger import show_daily_pnl
-from pnl_logger import auto_show_daily_pnl
+from config import CYCLE_SECONDS
 
-
-version = get_version()
-send_telegram_message(f"🚀 Bot lancé - Version {version}")
-load_dotenv()  # Charge les clés API depuis le fichier .env
-
-CYCLE_SECONDS = 60  # une décision par minute
-
-def countdown(seconds):
-    for i in range(seconds, 0, -1):
-        sys.stdout.write(f"\r⏳ Prochaine décision dans {i} sec")
-        sys.stdout.flush()
-        time.sleep(1)
-    print("\r🔁 Nouvelle décision...           ")
+print("\n🔁 Bot de trading multi-trades lancé")
 
 def main_loop():
-    print("🔁 Bot de trading démarré.")
     while True:
         try:
-            price = get_current_price()
-            print(f"\n📈 Prix actuel : {price} USDC")
-
             if should_buy():
-                print("✅ Décision : Acheter")
                 buy()
-                send_telegram_message(f"✅ Achat de {QUANTITY} BTC à {price} USDC")
-
-            elif should_sell():
-                print("✅ Décision : Vendre")
-                sell()
-                send_telegram_message(f"✅ Vente de {QUANTITY} BTC à {price} USDC")
-
             else:
-                print("❌ Aucune action à faire pour l’instant")
+                index = get_profitable_trade_index()
+                if index is not None:
+                    sell_trade_by_index(index)
+                else:
+                    print("❌ Aucune position rentable à vendre")
+
+            show_price_chart()
 
         except Exception as e:
             print(f"[ERREUR] : {e}")
 
-        auto_show_daily_pnl()
-        
         countdown(CYCLE_SECONDS)
-        show_price_chart()
+
+
+def countdown(seconds):
+    for i in range(seconds, 0, -1):
+        print(f"\r⏳ Prochaine décision dans {i} sec", end="")
+        time.sleep(1)
+    print("\r🔁 Nouvelle décision...           ")
 
 if __name__ == "__main__":
     main_loop()
-    show_daily_pnl()
-    
-    
+
 
 

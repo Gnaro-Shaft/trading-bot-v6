@@ -1,67 +1,51 @@
 # trader.py
-
 from binance.client import Client
-import os
-from notifier import send_telegram_message
-from binance_api import get_balance
-from memory import get_last_trade, clear_trade, save_trade
+from binance_api import client, get_balance, get_current_price
+from memory import add_trade, get_open_trades, remove_trade
 from pnl_logger import log_trade_pnl
-import time
-from config import QUANTITY, SYMBOL
-from dotenv import load_dotenv
-load_dotenv()
-
-
-API_KEY = os.getenv("BINANCE_API_KEY")
-API_SECRET = os.getenv("BINANCE_API_SECRET")
-
-client = Client(API_KEY, API_SECRET)
-
-SYMBOL = "BTCUSDC"
-QUANTITY = 0.0001  # À ajuster selon tes fonds
+from notifier import send_telegram_message
+from config import SYMBOL, QUANTITY
 
 def buy():
-    """
-    Passe un ordre d'achat au marché
-    """
     try:
         order = client.order_market_buy(symbol=SYMBOL, quantity=QUANTITY)
         price = float(order['fills'][0]['price'])
-        save_trade({
-            "price": price,
-            "time": int(time.time()),
-            "is_buy": True
-        })
-        print(f"[BUY] Achat de {QUANTITY} BTC à {price} USDC")
+        add_trade(price, QUANTITY)
+        print(f"[BUY] ✅ Achat de {QUANTITY} BTC à {price} USDC")
+        send_telegram_message(f"✅ Achat réel de {QUANTITY} BTC à {price} USDC")
         return price
     except Exception as e:
-        print(f"[ERROR] Achat échoué : {e}")
+        print(f"[ERROR] ❌ Achat échoué : {e}")
+        send_telegram_message(f"❌ Erreur lors de l'achat : {e}")
         return None
 
-def sell():
-    try:
-        btc_balance = get_balance('BTC')
-        if btc_balance < QUANTITY:
-            warning = f"⚠️ Vente annulée : solde insuffisant ({btc_balance} BTC dispo, {QUANTITY} requis)"
-            print(f"[SELL] {warning}")
-            send_telegram_message(warning)
-            clear_trade()
-            return None
+def sell_trade_by_index(index):
+    trades = get_open_trades()
+    if index >= len(trades):
+        print(f"[SELL] ❌ Index {index} invalide")
+        return
 
-        order = client.order_market_sell(symbol=SYMBOL, quantity=QUANTITY)
+    trade = trades[index]
+    quantity = trade["quantity"]
+    entry_price = trade["price"]
+
+    btc_balance = get_balance("BTC")
+    if btc_balance < quantity:
+        print(f"[SELL] ❌ Solde insuffisant pour vendre {quantity} BTC")
+        send_telegram_message("⚠️ Vente annulée : solde insuffisant")
+        remove_trade(index)
+        return
+
+    try:
+        order = client.order_market_sell(symbol=SYMBOL, quantity=quantity)
         price = float(order['fills'][0]['price'])
 
-        last_trade = get_last_trade()
-        entry_price = last_trade['price']
-        log_trade_pnl(entry_price, price, QUANTITY)
+        log_trade_pnl(entry_price, price, quantity)
+        remove_trade(index)
 
-        clear_trade()
-        print(f"[SELL] ✅ Vente de {QUANTITY} BTC à {price} USDC")
-        send_telegram_message(f"✅ Vente réelle de {QUANTITY} BTC à {price} USDC")
-        return price
+        print(f"[SELL] ✅ Vente de {quantity} BTC à {price} USDC")
+        send_telegram_message(f"✅ Vente réelle : {quantity} BTC à {price} USDC")
 
     except Exception as e:
-        error_msg = f"[ERROR] Vente échouée : {e}"
-        print(error_msg)
+        print(f"[ERROR] ❌ Vente échouée : {e}")
         send_telegram_message(f"❌ Erreur lors de la vente : {e}")
-        return None

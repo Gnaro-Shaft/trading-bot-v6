@@ -1,48 +1,49 @@
 # memory.py
 import os
 import json
+from datetime import datetime
 
-FILE_PATH = "last_trade.json"
+FILE_PATH = "open_trades.json"
 
-def save_trade(price, is_buy=True):
-    """
-    Sauvegarde le dernier trade dans un fichier local.
-    """
-    trade = {
-        "price": price,
-        "is_buy": is_buy
-    }
-    with open(FILE_PATH, "w") as f:
-        json.dump(trade, f)
-
-def get_last_trade():
-    """
-    Lit les infos du dernier trade (si dispo).
-    Retourne None si le fichier est vide ou corrompu.
-    """
+def _load_trades():
     if not os.path.exists(FILE_PATH):
-        return None
-
+        return []
     try:
         with open(FILE_PATH, "r") as f:
-            trade = json.load(f)
-            if "price" in trade and "is_buy" in trade:
-                return trade
-            else:
-                return None
+            trades = json.load(f)
+            if isinstance(trades, list):
+                return trades
+            return []
     except (json.JSONDecodeError, IOError):
-        return None
+        return []
 
-def has_open_position():
-    """
-    Retourne True si un trade d'achat est enregistré.
-    """
-    last_trade = get_last_trade()
-    return last_trade is not None and last_trade.get("is_buy", False)
+def _save_trades(trades):
+    with open(FILE_PATH, "w") as f:
+        json.dump(trades, f, indent=2)
 
-def clear_trade():
-    """
-    Supprime la mémoire locale du dernier trade.
-    """
+def add_trade(price, quantity):
+    trades = _load_trades()
+    trades.append({
+        "price": price,
+        "quantity": quantity,
+        "timestamp": datetime.now().isoformat()
+    })
+    _save_trades(trades)
+
+def get_open_trades():
+    return _load_trades()
+
+def remove_trade(index):
+    trades = _load_trades()
+    if 0 <= index < len(trades):
+        removed = trades.pop(index)
+        _save_trades(trades)
+        return removed
+    return None
+
+def clear_all_trades():
     if os.path.exists(FILE_PATH):
         os.remove(FILE_PATH)
+
+def has_open_trades():
+    return len(_load_trades()) > 0
