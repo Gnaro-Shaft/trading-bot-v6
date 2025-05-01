@@ -40,25 +40,42 @@ def should_buy():
 
 def should_sell():
     last_trade = get_last_trade()
-    if not last_trade or not last_trade['is_buy']:
-        log("❌ Pas de position ouverte")
+
+    if not last_trade:
+        log("❌ Aucun trade actif trouvé")
+        return False
+
+    if not last_trade.get("is_buy"):
+        log("⚠️ Le dernier trade n'est pas un achat")
+        return False
+
+    if "price" not in last_trade:
+        log("⚠️ Le dernier trade ne contient pas de prix")
+        return False
+
+    try:
+        entry_price = float(last_trade["price"])
+    except (ValueError, TypeError):
+        log("⚠️ Prix d'achat invalide dans le fichier")
         return False
 
     current_price = get_current_price()
-    entry_price = last_trade['price']
     gain = (current_price - entry_price) / entry_price
-    gain_min = get_dynamic_gain_threshold()
 
-    log(f"Prix actuel : {current_price}")
-    log(f"Prix d’achat : {entry_price}")
-    log(f"Gain latent : {gain*100:.2f}% / seuil requis : {gain_min*100:.2f}%")
+    log(f"📈 Prix actuel : {current_price}")
+    log(f"💰 Prix d’achat : {entry_price}")
+    log(f"📊 Gain latent : {gain * 100:.2f}%")
+
+    gain_min = get_dynamic_gain_threshold()
+    log(f"🎯 Seuil dynamique requis : {gain_min * 100:.2f}%")
 
     if gain >= gain_min:
-        log_to_telegram(f"✅ Vente validée : gain +{gain*100:.2f}%")
+        log_to_telegram(f"✅ Vente validée : gain +{gain * 100:.2f}%")
         return True
 
     log("⏳ Gain insuffisant pour vendre")
     return False
+
 
 
 # === COMPOSANTS DYNAMIQUES ===
