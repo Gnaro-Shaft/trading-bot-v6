@@ -13,27 +13,42 @@ from logger import log, log_to_telegram
 
 # === DÉCISION D’ACHAT ===
 
+from binance_api import get_current_price, get_moving_average, get_klines
+from memory import has_open_position
+from config import MA_PERIOD
+from logger import log, log_to_telegram
+
 def should_buy():
-    price = get_current_price()
-    ma = get_moving_average(period=MA_PERIOD)
+    try:
+        price = get_current_price()
+        ma = get_moving_average(period=MA_PERIOD)
 
-    log(f"Prix actuel : {price}")
-    log(f"Moyenne mobile ({MA_PERIOD}) : {ma}")
+        if price is None or ma is None:
+            log("❌ Impossible de récupérer le prix ou la moyenne mobile")
+            return False
 
-    if not is_price_significantly_low():
-        log("⛔ Prix pas assez bas (vs plus bas local)")
+        if not isinstance(price, (int, float)) or not isinstance(ma, (int, float)):
+            log("⚠️ Données invalides : prix ou MA ne sont pas numériques")
+            return False
+
+        log(f"📈 Prix actuel : {price}")
+        log(f"📉 Moyenne mobile ({MA_PERIOD}) : {ma}")
+
+        if price > ma:
+            log("⛔ Prix au-dessus de la MA → pas d'achat")
+            return False
+
+        if has_open_position():
+            log("⛔ Position déjà ouverte → pas d'achat")
+            return False
+
+        log_to_telegram("✅ Signal d'achat détecté")
+        return True
+
+    except Exception as e:
+        log(f"[ERREUR] during should_buy : {e}")
         return False
 
-    if not is_price_below_ma(price, ma):
-        log("⛔ Prix au-dessus de la moyenne mobile")
-        return False
-
-    if has_open_position():
-        log("⛔ Position déjà ouverte")
-        return False
-
-    log_to_telegram("✅ Signal d’achat détecté")
-    return True
 
 
 # === DÉCISION DE VENTE ===
