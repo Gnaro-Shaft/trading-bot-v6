@@ -2,10 +2,14 @@
 
 from binance.client import Client
 import os
-from memory import save_trade, clear_trade, get_last_trade
-import time
-from config import BINANCE_API_KEY, BINANCE_API_SECRET, SYMBOL, QUANTITY
+from notifier import send_telegram_message
+from binance_api import get_balance
+from memory import get_last_trade, clear_trade, save_trade
 from pnl_logger import log_trade_pnl
+import time
+from config import QUANTITY, SYMBOL
+from dotenv import load_dotenv
+load_dotenv()
 
 
 API_KEY = os.getenv("BINANCE_API_KEY")
@@ -35,27 +39,29 @@ def buy():
         return None
 
 def sell():
-    """
-    Passe un ordre de vente au marché
-    """
     try:
+        btc_balance = get_balance('BTC')
+        if btc_balance < QUANTITY:
+            warning = f"⚠️ Vente annulée : solde insuffisant ({btc_balance} BTC dispo, {QUANTITY} requis)"
+            print(f"[SELL] {warning}")
+            send_telegram_message(warning)
+            clear_trade()
+            return None
+
         order = client.order_market_sell(symbol=SYMBOL, quantity=QUANTITY)
         price = float(order['fills'][0]['price'])
 
         last_trade = get_last_trade()
-        if not last_trade or not last_trade.get("is_buy"):
-            print("[SELL] ❌ Aucun trade actif trouvé (ou déjà vidé)")
-            return None
-
         entry_price = last_trade['price']
         log_trade_pnl(entry_price, price, QUANTITY)
 
-        # Nettoyer la mémoire après vente
         clear_trade()
         print(f"[SELL] ✅ Vente de {QUANTITY} BTC à {price} USDC")
-
+        send_telegram_message(f"✅ Vente réelle de {QUANTITY} BTC à {price} USDC")
         return price
 
     except Exception as e:
-        print(f"[ERROR] ❌ Vente échouée : {e}")
+        error_msg = f"[ERROR] Vente échouée : {e}"
+        print(error_msg)
+        send_telegram_message(f"❌ Erreur lors de la vente : {e}")
         return None

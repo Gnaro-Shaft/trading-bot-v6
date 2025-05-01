@@ -53,3 +53,8 @@ def estimate_volatility(period=20):
     volatility = df['returns'].std()
     return volatility
 
+def get_balance(asset="BTC"):
+    info = client.get_asset_balance(asset=asset)
+    return float(info["free"])
+
+
