@@ -3,6 +3,8 @@
 # Aller dans le dossier du projet
 cd "$(dirname "$0")"
 
+python3 version_manager.py bump
+
 # Ajouter tous les fichiers modifiés
 git add .
 

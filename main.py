@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from decision_engine import should_buy, should_sell
 from trader import buy, sell
 from binance_api import get_current_price
+from version_manager import get_version
 from notifier import send_telegram_message
 from config import QUANTITY, SYMBOL, CYCLE_SECONDS
 import sys
@@ -13,7 +14,8 @@ from pnl_logger import show_daily_pnl
 from pnl_logger import auto_show_daily_pnl
 
 
-
+version = get_version()
+send_telegram_message(f"🚀 Bot lancé - Version {version}")
 load_dotenv()  # Charge les clés API depuis le fichier .env
 
 CYCLE_SECONDS = 60  # une décision par minute
