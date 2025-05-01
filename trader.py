@@ -8,16 +8,28 @@ from config import SYMBOL, QUANTITY
 
 def buy():
     try:
+        usdc_balance = get_balance("USDC")
+        current_price = get_current_price()
+        cost = QUANTITY * current_price
+
+        if usdc_balance < cost:
+            print(f"[BUY] ❌ Solde insuffisant : {usdc_balance} USDC (nécessaire : {cost:.2f})")
+            send_telegram_message(f"⚠️ Achat annulé : solde USDC insuffisant ({usdc_balance} dispo)")
+            return None
+
         order = client.order_market_buy(symbol=SYMBOL, quantity=QUANTITY)
         price = float(order['fills'][0]['price'])
         add_trade(price, QUANTITY)
+
         print(f"[BUY] ✅ Achat de {QUANTITY} BTC à {price} USDC")
         send_telegram_message(f"✅ Achat réel de {QUANTITY} BTC à {price} USDC")
         return price
+
     except Exception as e:
         print(f"[ERROR] ❌ Achat échoué : {e}")
         send_telegram_message(f"❌ Erreur lors de l'achat : {e}")
         return None
+
 
 def sell_trade_by_index(index):
     trades = get_open_trades()
