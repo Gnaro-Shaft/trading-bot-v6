@@ -41,12 +41,21 @@ def sell():
     try:
         order = client.order_market_sell(symbol=SYMBOL, quantity=QUANTITY)
         price = float(order['fills'][0]['price'])
+
         last_trade = get_last_trade()
+        if not last_trade or not last_trade.get("is_buy"):
+            print("[SELL] ❌ Aucun trade actif trouvé (ou déjà vidé)")
+            return None
+
         entry_price = last_trade['price']
         log_trade_pnl(entry_price, price, QUANTITY)
+
+        # Nettoyer la mémoire après vente
         clear_trade()
-        print(f"[SELL] Vente de {QUANTITY} BTC à {price} USDC")
+        print(f"[SELL] ✅ Vente de {QUANTITY} BTC à {price} USDC")
+
         return price
+
     except Exception as e:
-        print(f"[ERROR] Vente échouée : {e}")
+        print(f"[ERROR] ❌ Vente échouée : {e}")
         return None
