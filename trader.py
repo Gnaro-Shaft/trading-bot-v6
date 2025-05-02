@@ -20,16 +20,13 @@ def buy():
         order = client.order_market_buy(symbol=SYMBOL, quantity=QUANTITY)
         price = float(order['fills'][0]['price'])
         add_trade(price, QUANTITY)
-
         print(f"[BUY] ✅ Achat de {QUANTITY} BTC à {price} USDC")
         send_telegram_message(f"✅ Achat réel de {QUANTITY} BTC à {price} USDC")
         return price
-
     except Exception as e:
         print(f"[ERROR] ❌ Achat échoué : {e}")
         send_telegram_message(f"❌ Erreur lors de l'achat : {e}")
         return None
-
 
 def sell_trade_by_index(index):
     trades = get_open_trades()
