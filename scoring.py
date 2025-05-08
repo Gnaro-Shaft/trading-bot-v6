@@ -21,7 +21,7 @@ def compute_signal_score():
 
         # Confirmation par volume ou pinbar : +25 pts
         klines = get_klines(limit=3)
-        if not klines or len(klines) < 3:
+        if klines is None or klines.empty or len(klines) < 3:
             return score  # données insuffisantes
 
         vol0 = float(klines[-1][5])
