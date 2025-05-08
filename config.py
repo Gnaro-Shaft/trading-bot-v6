@@ -21,5 +21,5 @@ SPREAD_MAX = 0.1               # Pas utilisé pour l’instant
 MA_PERIOD = 20                 # Moyenne mobile courte
 CYCLE_SECONDS = 30             # Temps d’attente entre chaque décision
 
-DEBUG = False  # Active les logs détaillés
+DEBUG = True  # Active les logs détaillés
 
