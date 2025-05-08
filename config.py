@@ -20,6 +20,7 @@ GAIN_MIN = 0.02                # 2% de gain net avant vente
 SPREAD_MAX = 0.1               # Pas utilisé pour l’instant
 MA_PERIOD = 20                 # Moyenne mobile courte
 CYCLE_SECONDS = 30             # Temps d’attente entre chaque décision
+BUY_PERCENTAGE = 0.3           # Par exemple, 30 %
 
 DEBUG = True  # Active les logs détaillés
 

@@ -4,25 +4,28 @@ from binance_api import client, get_balance, get_current_price
 from memory import add_trade, get_open_trades, remove_trade
 from pnl_logger import log_trade_pnl
 from notifier import send_telegram_message
-from config import SYMBOL, QUANTITY
+from config import SYMBOL, QUANTITY, BUY_PERCENTAGE
 
 def buy():
     try:
         usdc_balance = get_balance("USDC")
         current_price = get_current_price()
-        cost = QUANTITY * current_price
 
-        if usdc_balance < cost:
-            print(f"[BUY] ❌ Solde insuffisant : {usdc_balance} USDC (nécessaire : {cost:.2f})")
-            send_telegram_message(f"⚠️ Achat annulé : solde USDC insuffisant ({usdc_balance} dispo)")
+        budget = usdc_balance * BUY_PERCENTAGE
+        quantity = round(budget / current_price, 6)
+
+        if quantity <= 0:
+            print(f"[BUY] ❌ Quantité calculée invalide : {quantity}")
             return None
 
-        order = client.order_market_buy(symbol=SYMBOL, quantity=QUANTITY)
+        order = client.order_market_buy(symbol=SYMBOL, quantity=quantity)
         price = float(order['fills'][0]['price'])
-        add_trade(price, QUANTITY)
-        print(f"[BUY] ✅ Achat de {QUANTITY} BTC à {price} USDC")
-        send_telegram_message(f"✅ Achat réel de {QUANTITY} BTC à {price} USDC")
+        add_trade(price, quantity)
+
+        print(f"[BUY] ✅ Achat dynamique de {quantity} BTC à {price} USDC")
+        send_telegram_message(f"✅ Achat de {quantity:.6f} BTC à {price} USDC (budget {budget:.2f})")
         return price
+
     except Exception as e:
         print(f"[ERROR] ❌ Achat échoué : {e}")
         send_telegram_message(f"❌ Erreur lors de l'achat : {e}")
